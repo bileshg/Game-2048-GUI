@@ -1,3 +1,4 @@
+import itertools
 import pygame
 import random
 from enum import Enum
@@ -117,31 +118,26 @@ class Game:
         return False
 
     def __has_lost_helper(self):
-        for row in range(conf.game.rows):
-            for col in range(conf.game.cols):
-                position_number = get_position_number(row, col)
+        for row, col in itertools.product(range(conf.game.rows), range(conf.game.cols)):
+            position_number = get_position_number(row, col)
 
-                tile = self.tiles.get(position_number)
+            tile = self.tiles.get(position_number)
 
-                if not tile:
-                    return False
+            if not tile:
+                return False
 
-                # Check Adjacent Tiles
-                if row > 0:
-                    if self.tiles.get(get_position_number(row - 1, col)).value == tile.value:
-                        return False
+            # Check Adjacent Tiles
+            if row > 0 and self.tiles.get(get_position_number(row - 1, col)).value == tile.value:
+                return False
 
-                if row < conf.game.rows - 1:
-                    if self.tiles.get(get_position_number(row + 1, col)).value == tile.value:
-                        return False
+            if row < conf.game.rows - 1 and self.tiles.get(get_position_number(row + 1, col)).value == tile.value:
+                return False
 
-                if col > 0:
-                    if self.tiles.get(get_position_number(row, col - 1)).value == tile.value:
-                        return False
+            if col > 0 and self.tiles.get(get_position_number(row, col - 1)).value == tile.value:
+                return False
 
-                if col < conf.game.cols - 1:
-                    if self.tiles.get(get_position_number(row, col + 1)).value == tile.value:
-                        return False
+            if col < conf.game.cols - 1 and self.tiles.get(get_position_number(row, col + 1)).value == tile.value:
+                return False
 
         return True
 
@@ -151,6 +147,20 @@ class Game:
             self.tiles[tile.position_number] = tile
 
         draw(self.window, self.font, self.tiles)
+
+
+def game_event_helper(game, event):
+    if event.type == pygame.KEYDOWN:
+        if event.key in [pygame.K_LEFT, pygame.K_a]:
+            return game.move_tiles(Direction.LEFT)
+        if event.key in [pygame.K_RIGHT, pygame.K_d]:
+            return game.move_tiles(Direction.RIGHT)
+        if event.key in [pygame.K_UP, pygame.K_w]:
+            return game.move_tiles(Direction.UP)
+        if event.key in [pygame.K_DOWN, pygame.K_s]:
+            return game.move_tiles(Direction.DOWN)
+
+    return False
 
 
 def game_loop(window, font, clock):
@@ -169,14 +179,7 @@ def game_loop(window, font, clock):
 
             if event.type == pygame.KEYDOWN:
                 if not has_lost:
-                    if event.key == pygame.K_LEFT or event.key == pygame.K_a:
-                        has_lost = game.move_tiles(Direction.LEFT)
-                    if event.key == pygame.K_RIGHT or event.key == pygame.K_d:
-                        has_lost = game.move_tiles(Direction.RIGHT)
-                    if event.key == pygame.K_UP or event.key == pygame.K_w:
-                        has_lost = game.move_tiles(Direction.UP)
-                    if event.key == pygame.K_DOWN or event.key == pygame.K_s:
-                        has_lost = game.move_tiles(Direction.DOWN)
+                    has_lost = game_event_helper(game, event)
                 else:
                     if event.key == pygame.K_r:
                         tiles = generate_tiles()
