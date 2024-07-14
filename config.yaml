@@ -1,0 +1,15 @@
+game:
+  fps: 60
+  rows: 4
+  cols: 4
+window:
+  width: 800
+  height: 800
+  title: "2048"
+border:
+  width: 10
+font:
+  name: "comicsans"
+  size: 60
+move:
+  velocity: 20
