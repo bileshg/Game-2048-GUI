@@ -1,6 +1,6 @@
 import pygame
-from config import conf
-from game import game_loop
+from src.utils.config import conf
+from src.game.engine import game_loop
 
 
 def main():

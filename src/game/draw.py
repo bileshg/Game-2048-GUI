@@ -1,6 +1,6 @@
 import pygame
-from config import conf
-from colors import Colors
+from src.utils.config import conf
+from src.utils.colors import Colors
 
 
 def draw_grid(window):

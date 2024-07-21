@@ -1,8 +1,8 @@
 import random
 import pygame
 import math
-from config import conf
-from colors import Colors
+from src.utils.config import conf
+from src.utils.colors import Colors
 
 
 def get_position_number(row, col):

@@ -2,9 +2,9 @@ import itertools
 import pygame
 import random
 from enum import Enum
-from config import conf
-from utils import draw
-from tile import Tile, get_random_position, generate_tiles, get_position_number
+from src.utils.config import conf
+from src.game.draw import draw
+from src.game.tile import Tile, get_random_position, generate_tiles, get_position_number
 
 
 class Direction(Enum):
@@ -29,23 +29,35 @@ def boundary_check(direction: Direction):
 
 
 def merge_check(direction: Direction):
-    checks = {
-        Direction.LEFT: lambda tile, next_tile: tile.x > next_tile.x + conf.move.velocity,
-        Direction.RIGHT: lambda tile, next_tile: tile.x < next_tile.x - conf.move.velocity,
-        Direction.UP: lambda tile, next_tile: tile.y > next_tile.y + conf.move.velocity,
-        Direction.DOWN: lambda tile, next_tile: tile.y < next_tile.y - conf.move.velocity
-    }
-    return checks[direction]
+    def check(tile, next_tile):
+        if direction == Direction.LEFT:
+            return tile.x > next_tile.x + conf.move.velocity
+        elif direction == Direction.RIGHT:
+            return tile.x < next_tile.x - conf.move.velocity
+        elif direction == Direction.UP:
+            return tile.y > next_tile.y + conf.move.velocity
+        elif direction == Direction.DOWN:
+            return tile.y < next_tile.y - conf.move.velocity
+
+    return check
 
 
 def move_check(direction: Direction):
-    checks = {
-        Direction.LEFT: lambda tile, next_tile: tile.x > next_tile.x + conf.tile.width + conf.move.velocity,
-        Direction.RIGHT: lambda tile, next_tile: tile.x + conf.tile.width + conf.move.velocity < next_tile.x,
-        Direction.UP: lambda tile, next_tile: tile.y > next_tile.y + conf.tile.height + conf.move.velocity,
-        Direction.DOWN: lambda tile, next_tile: tile.y + conf.tile.height + conf.move.velocity < next_tile.y
-    }
-    return checks[direction]
+    def check(tile, next_tile):
+        tile_width = conf.tile.width
+        tile_height = conf.tile.height
+        move_velocity = conf.move.velocity
+
+        if direction == Direction.LEFT:
+            return tile.x > next_tile.x + tile_width + move_velocity
+        elif direction == Direction.RIGHT:
+            return tile.x + tile_width + move_velocity < next_tile.x
+        elif direction == Direction.UP:
+            return tile.y > next_tile.y + tile_height + move_velocity
+        elif direction == Direction.DOWN:
+            return tile.y + tile_height + move_velocity < next_tile.y
+
+    return check
 
 
 class Game:
@@ -56,18 +68,25 @@ class Game:
         self.clock = clock
         self.tiles = tiles
 
-    def get_next_tile(self, direction: Direction):
-        next_tile = {
-            Direction.LEFT: lambda tile: self.tiles.get(tile.position_number - 1),
-            Direction.RIGHT: lambda tile: self.tiles.get(tile.position_number + 1),
-            Direction.UP: lambda tile: self.tiles.get(tile.position_number - conf.game.cols),
-            Direction.DOWN: lambda tile: self.tiles.get(tile.position_number + conf.game.cols)
+    def get_next_tile(self, tile: Tile, direction: Direction):
+        row, col = tile.row, tile.col
+
+        direction_map = {
+            Direction.LEFT: (0, -1),
+            Direction.RIGHT: (0, 1),
+            Direction.UP: (-1, 0),
+            Direction.DOWN: (1, 0)
         }
-        return next_tile[direction]
+
+        row_adjust, col_adjust = direction_map[direction]
+        row += row_adjust
+        col += col_adjust
+
+        return self.tiles.get(get_position_number(row, col))
 
     def move_tiles(self, direction: Direction):
         updated = True
-        blocks = set()
+        blocked = set()
 
         # dx, dy, reverse, ceil
         directions = {
@@ -83,20 +102,22 @@ class Game:
             updated = False
             sorted_tiles = sorted(self.tiles.values(), key=sort_by(direction), reverse=reverse)
 
-            for i, tile in enumerate(sorted_tiles):
+            tiles_to_remove = []
+            for tile in sorted_tiles:
                 if boundary_check(direction)(tile):
                     continue
 
-                next_tile = self.get_next_tile(direction)(tile)
+                next_tile = self.get_next_tile(tile, direction)
                 if not next_tile:
                     tile.move(dx, dy)
-                elif tile.value == next_tile.value and tile not in blocks and next_tile not in blocks:
+                elif tile.value == next_tile.value and tile not in blocked and next_tile not in blocked:
                     if merge_check(direction)(tile, next_tile):
                         tile.move(dx, dy)
                     else:
                         next_tile.value *= 2
-                        sorted_tiles.pop(i)
-                        blocks.add(next_tile)
+                        tiles_to_remove.append(tile)
+                        blocked.add(tile)
+                        blocked.add(next_tile)
                 elif move_check(direction)(tile, next_tile):
                     tile.move(dx, dy)
                 else:
@@ -105,41 +126,39 @@ class Game:
                 tile.set_position_coordinates(ceil)
                 updated = True
 
+            for tile in tiles_to_remove:
+                sorted_tiles.remove(tile)
+
             self.update_tiles(sorted_tiles)
 
         return self.has_lost()
 
     def has_lost(self):
         if len(self.tiles) == 16:
-            return self.__has_lost_helper()
+            return not self.__has_possible_moves()
 
         row, col, position_number = get_random_position(self.tiles)
         self.tiles[position_number] = Tile(random.choice([2, 4]), row, col)
         return False
 
-    def __has_lost_helper(self):
+    def __has_possible_moves(self):
+        deltas = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+
         for row, col in itertools.product(range(conf.game.rows), range(conf.game.cols)):
             position_number = get_position_number(row, col)
-
             tile = self.tiles.get(position_number)
 
             if not tile:
-                return False
+                return True
 
-            # Check Adjacent Tiles
-            if row > 0 and self.tiles.get(get_position_number(row - 1, col)).value == tile.value:
-                return False
+            for dr, dc in deltas:
+                adj_row, adj_col = row + dr, col + dc
+                if 0 <= adj_row < conf.game.rows and 0 <= adj_col < conf.game.cols:
+                    adjacent_tile = self.tiles.get(get_position_number(adj_row, adj_col))
+                    if adjacent_tile is None or adjacent_tile.value == tile.value:
+                        return True
 
-            if row < conf.game.rows - 1 and self.tiles.get(get_position_number(row + 1, col)).value == tile.value:
-                return False
-
-            if col > 0 and self.tiles.get(get_position_number(row, col - 1)).value == tile.value:
-                return False
-
-            if col < conf.game.cols - 1 and self.tiles.get(get_position_number(row, col + 1)).value == tile.value:
-                return False
-
-        return True
+        return False
 
     def update_tiles(self, sorted_tiles):
         self.tiles.clear()

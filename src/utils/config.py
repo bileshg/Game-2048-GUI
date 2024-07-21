@@ -9,4 +9,4 @@ conf.tile.height = conf.window.height // conf.game.rows
 conf.instructions = {}
 conf.instructions.font = {}
 conf.instructions.font.name = conf.font.name
-conf.instructions.font.size = conf.font.size // 2 if conf.font.size // 2 > 10 else 10
+conf.instructions.font.size = max(conf.font.size // 2, 10)
