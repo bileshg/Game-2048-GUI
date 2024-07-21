@@ -10,6 +10,9 @@ def get_position_number(row, col):
 
 
 def get_random_position(tiles):
+    if len(tiles) == conf.game.rows * conf.game.cols:
+        raise ValueError("All positions are full")
+
     while True:
         row = random.randrange(0, conf.game.rows)
         col = random.randrange(0, conf.game.cols)
