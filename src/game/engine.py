@@ -1,17 +1,18 @@
 import itertools
 import pygame
 import random
-from enum import Enum
+
+from src.game.direction import Direction
 from src.utils.config import conf
 from src.game.draw import draw
 from src.game.tile import Tile, get_random_position, generate_tiles, get_position_number
 
 
-class Direction(Enum):
-    LEFT = 1
-    RIGHT = 2
-    UP = 3
-    DOWN = 4
+def to_grid(tiles: dict):
+    grid = [[None for _ in range(conf.game.cols)] for _ in range(conf.game.rows)]
+    for tile in tiles.values():
+        grid[tile.row][tile.col] = tile.value
+    return grid
 
 
 def sort_by(direction: Direction):
@@ -167,6 +168,9 @@ class Game:
 
         draw(self.window, self.font, self.tiles)
 
+    def __str__(self):
+        return str(to_grid(self.tiles))
+
 
 def game_event_helper(game, event):
     if event.type == pygame.KEYDOWN:
@@ -185,6 +189,7 @@ def game_event_helper(game, event):
 def game_loop(window, font, clock):
     run = True
     has_lost = False
+
     tiles = generate_tiles()
     game = Game(window, font, clock, tiles)
 

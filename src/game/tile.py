@@ -64,6 +64,9 @@ class Tile:
         self.x += dx
         self.y += dy
 
+    def __str__(self):
+        return f"Tile(x: {self.row}; y: {self.col}; value: {self.value})"
+
 
 def generate_tiles():
     tiles = {}

@@ -1,4 +1,5 @@
 import pygame
+
 from src.utils.config import conf
 from src.game.engine import game_loop
 

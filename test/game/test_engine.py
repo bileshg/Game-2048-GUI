@@ -1,9 +1,7 @@
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock
 
-import pygame
-
-from src.game.engine import Game, Direction
+from src.game.engine import Game
 from src.game.tile import generate_tiles, Tile
 from src.utils.config import conf
 
